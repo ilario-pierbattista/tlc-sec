@@ -1,0 +1,2 @@
+add_subdirectory(lib/googletest/googletest)
+add_subdirectory(crypto_test)
