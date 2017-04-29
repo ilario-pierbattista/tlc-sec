@@ -28,7 +28,6 @@ script:
 
 after_success:
   - coveralls --exclude tests --gcov-options '\-lp'
-  #- coveralls -E ".*external.*" -E ".*CMakeFiles.*" -E "tests/*"
 
 notifications:
   email: false
