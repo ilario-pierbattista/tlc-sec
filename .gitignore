@@ -1,5 +1,7 @@
 # Created by .ignore support plugin (hsz.mobi)
 cmake-build-debug
+.idea
+.coveralls.yml
 ### Windows template
 # Windows thumbnail cache files
 Thumbs.db

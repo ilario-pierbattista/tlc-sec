@@ -25,9 +25,11 @@ script:
   - cmake ..
   - make
   - ./tests/crypto_test/run_tests
+  - cd ..
 
 after_success:
-  - coveralls --root .. -E ".*external.*" -E ".*CMakeFiles.*" -E ".*test/.*.cpp.*"
+  - coveralls
+  #- coveralls -E ".*external.*" -E ".*CMakeFiles.*" -E "tests/*"
 
 notifications:
   email: false
