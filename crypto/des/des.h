@@ -60,10 +60,14 @@ des_feistel (des_4bytes_t *dest_sub_block, des_4bytes_t *src_sub_block,
              des_round_key_t *round_key);
 
 void
-des_generate_round_key (des_key_t *next_key, des_key_t *current_key,
-                        short round);
+des_generate_round_key (des_round_key_t *round_key, des_key_t *next_key,
+                        des_key_t *current_key, short round);
 
 void des_left_shift_half_key (des_4bytes_t *next, des_4bytes_t *current,
                               short round);
+
+void des_filter_56B_key (des_round_key_t *round_key, des_key_t *key);
+
+void des_key_permutation(des_key_t *out, des_key_t *in);
 
 #endif //TLC_SEC_DES_H

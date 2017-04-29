@@ -9,8 +9,10 @@
 
 int byte_parity_check (__uint8_t byte);
 
-__uint8_t add_parity_bit (__uint8_t byte);
+__uint8_t byte_add_parity_bit (__uint8_t byte);
 
-__uint8_t remove_parity_bit (__uint8_t byte);
+__uint8_t byte_remove_parity_bit (__uint8_t byte);
+
+__uint8_t byte_get_bit (__uint8_t byte, int position);
 
 #endif //TLC_SEC_BYTE_UTILS_H

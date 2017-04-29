@@ -24,43 +24,62 @@ TEST(byte_utils, check_parity) {
 }
 
 TEST(byte_utils, add_parity) {
-    // x000 0000
+    // 0000 000x
     // 0000 0000
-    EXPECT_EQ(add_parity_bit((__uint8_t) 0x00), 0x00);
+    EXPECT_EQ(byte_add_parity_bit((__uint8_t) 0x00), 0x00);
     // x000 0011
-    // 0000 0011
-    EXPECT_EQ(add_parity_bit((__uint8_t) 0x03), 0x03);
+    // 0000 0110
+    EXPECT_EQ(byte_add_parity_bit((__uint8_t) 0x03), 0x06);
     // x110 1100
-    // 0110 1100
-    EXPECT_EQ(add_parity_bit((__uint8_t) 0x6C), 0x6C);
+    // 1101 1000
+    EXPECT_EQ(byte_add_parity_bit((__uint8_t) 0x6C), 0xD8);
     // x111 1111
     // 1111 1111
-    EXPECT_EQ(add_parity_bit((__uint8_t) 0x7F), 0xFF);
+    EXPECT_EQ(byte_add_parity_bit((__uint8_t) 0x7F), 0xFF);
     // x000 0001
-    // 1000 0001
-    EXPECT_EQ(add_parity_bit((__uint8_t) 0x01), 0x81);
+    // 0000 0011
+    EXPECT_EQ(byte_add_parity_bit((__uint8_t) 0x01), 0x03);
     // x011 1110
-    // 1011 1110
-    EXPECT_EQ(add_parity_bit((__uint8_t) 0x3E), 0xBE);
+    // 0111 1101
+    EXPECT_EQ(byte_add_parity_bit((__uint8_t) 0x3E), 0x7D);
 }
 
 TEST(byte_utils, remove_parity) {
     // 0000 0000
     // x000 0000
-    EXPECT_EQ(remove_parity_bit((__uint8_t) 0x00), 0x00);
+    EXPECT_EQ(byte_remove_parity_bit((__uint8_t) 0x00), 0x00);
     // 0000 0011
-    // x000 0011
-    EXPECT_EQ(remove_parity_bit((__uint8_t) 0x03), 0x03);
+    // x000 0001
+    EXPECT_EQ(byte_remove_parity_bit((__uint8_t) 0x03), 0x01);
     // 0110 1100
-    // x110 1100
-    EXPECT_EQ(remove_parity_bit((__uint8_t) 0x6C), 0x6C);
+    // x011 0110
+    EXPECT_EQ(byte_remove_parity_bit((__uint8_t) 0x6C), 0x36);
     // 1111 1111
     // x111 1111
-    EXPECT_EQ(remove_parity_bit((__uint8_t) 0xFF), 0x7F);
+    EXPECT_EQ(byte_remove_parity_bit((__uint8_t) 0xFF), 0x7F);
     // 1000 0001
-    // x000 0001
-    EXPECT_EQ(remove_parity_bit((__uint8_t) 0x81), 0x01);
+    // x100 0000
+    EXPECT_EQ(byte_remove_parity_bit((__uint8_t) 0x81), 0x40);
     // 1011 1110
-    // x011 1110
-    EXPECT_EQ(remove_parity_bit((__uint8_t) 0xBE), 0x3E);
+    // x101 1111
+    EXPECT_EQ(byte_remove_parity_bit((__uint8_t) 0xBE), 0x5F);
+}
+
+TEST(byte_utils, get_bit) {
+    EXPECT_EQ(byte_get_bit(0x01, 8), 0x01);
+    EXPECT_EQ(byte_get_bit(0x02, 7), 0x01);
+    EXPECT_EQ(byte_get_bit(0x04, 6), 0x01);
+    EXPECT_EQ(byte_get_bit(0x08, 5), 0x01);
+    EXPECT_EQ(byte_get_bit(0x10, 4), 0x01);
+    EXPECT_EQ(byte_get_bit(0x20, 3), 0x01);
+    EXPECT_EQ(byte_get_bit(0x40, 2), 0X01);
+    EXPECT_EQ(byte_get_bit(0x80, 1), 0X01);
+    EXPECT_EQ(byte_get_bit(0xFF, 8), 0X01);
+    EXPECT_EQ(byte_get_bit(0xFF, 7), 0X01);
+    EXPECT_EQ(byte_get_bit(0xFF, 6), 0X01);
+    EXPECT_EQ(byte_get_bit(0xFF, 5), 0X01);
+    EXPECT_EQ(byte_get_bit(0xFF, 4), 0X01);
+    EXPECT_EQ(byte_get_bit(0xFF, 3), 0X01);
+    EXPECT_EQ(byte_get_bit(0xFF, 2), 0X01);
+    EXPECT_EQ(byte_get_bit(0xFF, 1), 0X01);
 }

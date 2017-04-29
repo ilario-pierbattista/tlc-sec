@@ -27,8 +27,8 @@ int initial_message_permutation[] = {58, 50, 42, 34, 26, 18, 10, 2, 60,
                                      13, 5, 63, 55, 47, 39, 31, 23, 15,
                                      7};
 
-int key_shift_offsets[16] = {1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2,
-                             2, 1};
+int key_shift_offsets[17] = {0, 1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2,
+                             2, 2, 1};
 
 int round_key_filter[48] = {14, 17, 11, 24, 1, 5, 3, 28, 15, 6, 21, 10,
                             23, 19, 12, 4, 26, 8, 16, 7, 27, 20, 13, 2,
@@ -136,7 +136,7 @@ void des_generate_key (char *password, des_key_t *key) {
         ascii_char = ((__uint8_t) 0x7F) & password[i];
 
         // Add parity bit
-        ascii_char = add_parity_bit(ascii_char);
+        ascii_char = byte_add_parity_bit(ascii_char);
 
         // Add byte to key
         key->key[i] = ascii_char;
@@ -159,34 +159,113 @@ void des_left_shift_half_key (des_4bytes_t *next, des_4bytes_t *current,
     next->u32 = 0;
 
     for (int i = 0; i < 4; ++i) {
-        left_byte = remove_parity_bit(current->u8[i]);
-        right_byte = remove_parity_bit(current->u8[(i + 1) % 4]);
+        left_byte = byte_remove_parity_bit(current->u8[i]);
+        right_byte = byte_remove_parity_bit(current->u8[(i + 1) % 4]);
 
-        if (shift == 1) {
-            // Masks for 1 bit left shifting
-            // xbbb bbbb &      xddd dddd &
-            // 0011 1111 =      0100 0000 =
-            // 00bb bbbb << 1   0d00 0000 >> 6
-            // 0bbb bbb0    |   0000 000d = 0bbb bbbd
-            left_part = (left_byte & (__uint8_t) 0x3F) << 1;
-            right_part = (right_byte & (__uint8_t) 0x40) >> 6;
-        } else {
-            // Masks for 2 bits left shifting
-            // xbbb bbbb &      xddd dddd &
-            // 0001 1111 =      0110 0000 =
-            // 000b bbbb << 2   0dd0 0000 >> 5
-            // 0bbb bb00    |   0000 00dd = 0bbb bbdd
-            left_part = (left_byte & (__uint8_t) 0x1F) << 2;
-            right_part = (right_byte & (__uint8_t) 0x60) >> 5;
+        switch (shift) {
+            case 1: {
+                // Masks for 1 bit left shifting
+                // xbbb bbbb &      xddd dddd &
+                // 0011 1111 =      0100 0000 =
+                // 00bb bbbb << 1   0d00 0000 >> 6
+                // 0bbb bbb0    |   0000 000d = 0bbb bbbd
+                left_part = (left_byte & (__uint8_t) 0x3F) << 1;
+                right_part = (right_byte & (__uint8_t) 0x40) >> 6;
+                break;
+            }
+            case 2: {
+                // Masks for 2 bits left shifting
+                // xbbb bbbb &      xddd dddd &
+                // 0001 1111 =      0110 0000 =
+                // 000b bbbb << 2   0dd0 0000 >> 5
+                // 0bbb bb00    |   0000 00dd = 0bbb bbdd
+                left_part = (left_byte & (__uint8_t) 0x1F) << 2;
+                right_part = (right_byte & (__uint8_t) 0x60) >> 5;
+                break;
+            }
+            default: {
+                left_part = left_byte;
+                right_part = (__uint8_t) 0x00;
+            }
         }
 
-        next->u8[i] = add_parity_bit(left_part | right_part);
+        next->u8[i] = byte_add_parity_bit(left_part | right_part);
+    }
+}
+
+void des_key_permutation (des_key_t *out, des_key_t *in) {
+    int abs_bit_position, in_byte_number, in_byte_offset;
+    char out_byte_number, out_byte_offset;
+    __uint8_t extracted_bit;
+
+    memset(out->key, 0, 8);
+
+    out_byte_number = 0;
+    out_byte_offset = 0;
+    for (int i = 0; i < 56; ++i) {
+        abs_bit_position = key_permutation[i];
+        in_byte_number = abs_bit_position / 8;
+        in_byte_offset = abs_bit_position % 8;
+
+        extracted_bit = byte_get_bit(in->key[in_byte_number],
+                                     in_byte_offset);
+
+        out->key[out_byte_number] = out->key[out_byte_number] |
+                                    (extracted_bit
+                                            << (7 - out_byte_offset));
+
+        if (++out_byte_offset % 7 == 0) {
+            out->key[out_byte_number] = byte_add_parity_bit(
+                    out->key[out_byte_number] >> 1);
+            out_byte_number++;
+            out_byte_offset = 0;
+        }
     }
 }
 
 void
-des_generate_round_key (des_key_t *next_key, des_key_t *current_key,
-                        short round) {
+des_filter_56B_key (des_round_key_t *round_key, des_key_t *in_key) {
+    int k_bit_num, k_byte_num, k_byte_offset;
+    int round_key_byte_num, round_key_byte_offset;
+    __uint8_t extracted_bit;
+    des_key_t key;
+
+    for (int i = 0; i < 8; ++i) {
+        key.key[i] = byte_remove_parity_bit(in_key->key[i]);
+    }
+    memset(round_key->key, 0, 6);
+
+    for (int rk_bit_num = 0; rk_bit_num < 48; ++rk_bit_num) {
+        k_bit_num = round_key_filter[rk_bit_num] - 1;
+
+        k_byte_num = k_bit_num / 7;
+        k_byte_offset = k_bit_num % 7;
+
+        extracted_bit = byte_get_bit(key.key[k_byte_num],
+                                     k_byte_offset + 2);
+
+        round_key_byte_num = rk_bit_num / 8;
+        round_key_byte_offset = rk_bit_num % 8;
+
+        round_key->key[round_key_byte_num] |= (extracted_bit
+                << (7 - round_key_byte_offset));
+    }
+}
+
+void
+des_generate_round_key (des_round_key_t *round_key, des_key_t *next_key,
+                        des_key_t *current_key, short round) {
+    memset(round_key->key, 0x00, 6);
+
+    if (round > 0) {
+        des_left_shift_half_key(&next_key->splitted.c,
+                                &current_key->splitted.c, round);
+        des_left_shift_half_key(&next_key->splitted.d,
+                                &current_key->splitted.d, round);
+        des_filter_56B_key(round_key, next_key);
+    } else {
+        des_key_permutation(next_key, current_key);
+    }
 }
 
 void des_encrypt (des_block_t *cipher_text, des_block_t *plain_text,
