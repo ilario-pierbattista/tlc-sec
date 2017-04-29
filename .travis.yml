@@ -25,10 +25,9 @@ script:
   - cmake ..
   - make
   - ./tests/crypto_test/run_tests
-  - cd ..
 
 after_success:
-  - coveralls
+  - coveralls --exclude tests --gcov-options '\-lp'
   #- coveralls -E ".*external.*" -E ".*CMakeFiles.*" -E "tests/*"
 
 notifications:
