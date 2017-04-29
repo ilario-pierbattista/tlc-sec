@@ -24,7 +24,7 @@ script:
   - cd build
   - cmake ..
   - make
-  - ./tests/crypto_test/run_test
+  - ./tests/crypto_test/run_tests
 
 after_success:
   - coveralls --root .. -E ".*external.*" -E ".*CMakeFiles.*" -E ".*test/.*.cpp.*"
