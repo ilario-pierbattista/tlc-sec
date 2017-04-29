@@ -16,7 +16,7 @@ addons:
       - cmake-data
 
 before_install:
-  - pip install --user cpp-coveralls
+  - pip install --user urllib3[secure] cpp-coveralls
 
 script:
   - git submodule update --init --recursive
