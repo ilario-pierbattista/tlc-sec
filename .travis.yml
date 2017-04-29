@@ -25,6 +25,7 @@ script:
   - cmake ..
   - make
   - ./tests/crypto_test/run_tests
+  - cd ..
 
 after_success:
   - coveralls --exclude tests --exclude build --gcov-options '\-lp'
