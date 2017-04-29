@@ -28,7 +28,8 @@ script:
   - ./tests/crypto_test/run_tests
 
 after_success:
-  - coveralls -r .. -b . -e tests -e build -e '<built-in>' --gcov-options '\-lp'
+  - coveralls -r .. -b . -e build -e '<built-in>' --gcov-options '\-lp'
 
 notifications:
   email: false
+  webhooks: https://coveralls.io/webhook?repo_token=COVERALLS_REPO_TOKEN
