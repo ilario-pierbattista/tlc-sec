@@ -28,7 +28,7 @@ script:
   - ./tests/crypto_test/run_tests
 
 after_success:
-  - coveralls -r .. -b . -e build -e '<built-in>' --gcov-options '\-lp'
+  - coveralls -r .. -b . --verbose -e tests -e build -e '<built-in>' --gcov-options '\-lp'
 
 notifications:
   email: false
