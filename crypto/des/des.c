@@ -3,8 +3,9 @@
 //
 
 #include <stdio.h>
-#include <mhash.h>
+#include <stdlib.h>
 #include <print_utils.h>
+#include <memory.h>
 #include "des.h"
 #include "byte_utils.h"
 
