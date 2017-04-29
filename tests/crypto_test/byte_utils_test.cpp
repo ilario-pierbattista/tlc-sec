@@ -83,3 +83,24 @@ TEST(byte_utils, get_bit) {
     EXPECT_EQ(byte_get_bit(0xFF, 2), 0X01);
     EXPECT_EQ(byte_get_bit(0xFF, 1), 0X01);
 }
+
+TEST(byte_utils, pack_6b) {
+    __uint8_t before[3], after[4], expected[4];
+    memset(before, 0x55, 3);
+    memset(expected, 0x15, 4);
+
+    byte_4packs_of_6bit(after, before);
+    EXPECT_EQ(memcmp(after, expected, 4), 0);
+}
+
+TEST(byte_utils, pack_8b_from_6b) {
+    __uint8_t before[4], after[3], expected[3];
+    memset(before, 0x15, 4);
+    memset(expected, 0x55, 3);
+
+    byte_3packs_of_8bit(after, before);
+    EXPECT_EQ(after[0], expected[0]);
+    EXPECT_EQ(after[1], expected[1]);
+    EXPECT_EQ(after[2], expected[2]);
+    EXPECT_EQ(memcmp(after, expected, 3), 0);
+}

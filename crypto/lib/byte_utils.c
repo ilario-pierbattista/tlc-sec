@@ -3,6 +3,7 @@
 //
 
 #include "byte_utils.h"
+#include <memory.h>
 
 int byte_parity_check (__uint8_t byte) {
     short counter = 0;
@@ -36,4 +37,31 @@ __uint8_t byte_get_bit (__uint8_t byte, int position) {
                           0x01};
 
     return (byte & masks[position - 1]) >> (8 - position);
+}
+
+void byte_4packs_of_6bit (__uint8_t dest[4], __uint8_t src[3]) {
+    memset(dest, 0, 4);
+
+    dest[0] = (src[0] & (__uint8_t) 0xFC) >> 2;
+
+    dest[1] = (src[0] & (__uint8_t) 0x03) << 4;
+    dest[1] |= (src[1] & (__uint8_t) 0xF0) >> 4;
+
+    dest[2] = (src[1] & (__uint8_t) 0x0F) << 2;
+    dest[2] |= (src[2] & (__uint8_t) 0xC0) >> 6;
+
+    dest[3] = (src[2] & (__uint8_t) 0x3F);
+}
+
+void byte_3packs_of_8bit (__uint8_t dest[3], __uint8_t src[4]) {
+    memset(dest, 0, 3);
+
+    dest[0] = (src[0] & (__uint8_t) 0x3F) << 2;
+    dest[0] |= (src[1] & (__uint8_t) 0x30) >> 4;
+
+    dest[1] = (src[1] & (__uint8_t) 0x0F) << 4;
+    dest[1] |= (src[2] & (__uint8_t) 0x3C) >> 2;
+
+    dest[2] = (src[2] & (__uint8_t) 0x03) << 6;
+    dest[2] |= (src[3] & (__uint8_t) 0x3F);
 }
