@@ -79,17 +79,17 @@ void des_generate_block_list (des_block_list_t *block_list,
     *block_list = 0;
 
     for (int i = 0; i < size; ++i) {
-        block_buffer.block[counter++] = string[i];
-        if (counter % 8 == 0) {  // A block is completed
+        block_buffer.u8[counter++] = string[i];
+        if (counter % 8 == 0) {  // A u8 is completed
             counter = 0;
 
-            // Creating new block for the list
+            // Creating new u8 for the list
             inserting_block = (des_block_node_t *) malloc(
                     sizeof(des_block_node_t));
-            memcpy(inserting_block->block.block, block_buffer.block, 8);
+            memcpy(inserting_block->block.u8, block_buffer.u8, 8);
             inserting_block->next = 0;
 
-            // Appending block
+            // Appending u8
             if (*block_list != 0) { // General Case
                 des_block_list_append(&block_list_tail->next,
                                       inserting_block);
@@ -320,6 +320,36 @@ void des_feistel (des_half_block_t *dest_sub_block,
     }
 
     des_sub_half_block_permutation(dest_sub_block, &sub_half_block);
+}
+
+void des_feistel_round (des_block_t *dest, des_block_t *src,
+                        des_round_key_t *round_key) {
+    des_half_block_t feistel_result;
+    dest->u64 = 0;
+    feistel_result.u32 = 0;
+
+    // L(i) = R(i-1)
+    dest->splitted.l.u32 = src->splitted.r.u32;
+    des_feistel(&feistel_result, &src->splitted.r, round_key);
+    // R(i) = f(R(i-1),K(i)) XOR L(i-1)
+    dest->splitted.r.u32 = feistel_result.u32 ^ src->splitted.l.u32;
+}
+
+void des_generate_keyring (des_round_key_t keyring[16],
+                           des_key_t *initial_key) {
+    for (int j = 0; j < 16; ++j) {
+        memset(keyring[j].u8, 0, 6);
+    }
+
+    des_key_t current, next;
+    des_round_key_t round_key;
+
+    des_generate_round_key(&round_key, &current, initial_key, 0);
+    for (short round = 0; round < 16; round++) {
+        des_generate_round_key(&keyring[round], &next, &current,
+                               round + (short) 1);
+        current.u64 = next.u64;
+    }
 }
 
 void des_encrypt (des_block_t *cipher_text, des_block_t *plain_text,

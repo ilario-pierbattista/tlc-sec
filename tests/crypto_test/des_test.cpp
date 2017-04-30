@@ -9,24 +9,24 @@ TEST(des, block_list_append) {
     des_block_node_t *node_2, *node_3;
     node_2 = (des_block_node_t *) malloc(sizeof(des_block_node_t));
     node_3 = (des_block_node_t *) malloc(sizeof(des_block_node_t));
-    node_2->block.block[0] = 2;
+    node_2->block.u8[0] = 2;
     node_2->next = 0;
-    node_3->block.block[0] = 3;
+    node_3->block.u8[0] = 3;
     node_3->next = 0;
     list_2 = node_2;
     list_3 = node_3;
 
     des_block_list_append(&list_1, list_2);
-    EXPECT_EQ(list_1->block.block[0], 2);
-    EXPECT_EQ(list_2->block.block[0], 2);
+    EXPECT_EQ(list_1->block.u8[0], 2);
+    EXPECT_EQ(list_2->block.u8[0], 2);
 
     des_block_list_append(&list_2, list_3);
-    EXPECT_EQ(list_2->block.block[0], 2);
-    EXPECT_EQ(list_2->next->block.block[0], 3);
-    EXPECT_EQ(list_3->block.block[0], 3);
+    EXPECT_EQ(list_2->block.u8[0], 2);
+    EXPECT_EQ(list_2->next->block.u8[0], 3);
+    EXPECT_EQ(list_3->block.u8[0], 3);
 
-    EXPECT_EQ(list_1->block.block[0], 2);
-    EXPECT_EQ(list_1->next->block.block[0], 3);
+    EXPECT_EQ(list_1->block.u8[0], 2);
+    EXPECT_EQ(list_1->next->block.u8[0], 3);
     EXPECT_EQ((unsigned long long) list_1->next->next, 0);
 
     free(node_2);
@@ -44,8 +44,8 @@ TEST(des, block_list) {
 
     des_generate_block_list(&list, string, 16);
 
-    EXPECT_EQ(memcmp(list->block.block, first_expected, 4), 0);
-    EXPECT_EQ(memcmp(list->next->block.block, second_expected, 4), 0);
+    EXPECT_EQ(memcmp(list->block.u8, first_expected, 4), 0);
+    EXPECT_EQ(memcmp(list->next->block.u8, second_expected, 4), 0);
     EXPECT_EQ((unsigned long long) list->next->next, 0);
 }
 
@@ -116,6 +116,259 @@ TEST(des, round_key) {
     des_generate_round_key(&round_key, &c1d1, &c0d0, 1);
     EXPECT_EQ(memcmp(c1d1.key, c1d1_exp.key, 8), 0);
     EXPECT_EQ(memcmp(round_key.u8, round_key_exp.u8, 6), 0);
+
+    // Round 2: shift 1
+    // C1 = 0x00 0x00 0x00 0x00
+    // D1 = 0x00 0x00 0x00 0x03
+    c0d0.u64 = 0;
+    c0d0.key[7] = 0x03;
+    // C2 = 0x00 0x00 0x00 0x00
+    // D2 = 0x00 0x00 0x00 0x05
+    c1d1_exp.u64 = 0;
+    c1d1_exp.key[7] = 0x05;
+    // K2 = 0x00 0x00 0x00 0x04 0x00 0x00
+    memset(round_key_exp.u8, 0, 6);
+    round_key_exp.u8[3] = 0x04;
+    // Test:
+    des_generate_round_key(&round_key, &c1d1, &c0d0, 2);
+    EXPECT_EQ(c1d1.u64, c1d1_exp.u64);
+    EXPECT_EQ(memcmp(round_key.u8, round_key_exp.u8, 6), 0);
+
+    // Round 3: shift 2
+    // C2 = 0x00 0x00 0x00 0x00
+    // D2 = 0x00 0x00 0x00 0x05
+    c0d0.u64 = 0;
+    c0d0.key[7] = 0x05;
+    // C3 = 0x00 0x00 0x00 0x00
+    // D3 = 0x00 0x00 0x00 0x11
+    c1d1_exp.u64 = 0;
+    c1d1_exp.key[7] = 0x11;
+    // K3 = 0x00 0x00 0x00 0x00 0x00 0x40
+    memset(round_key_exp.u8, 0, 6);
+    round_key_exp.u8[5] = 0x40;
+    // Test:
+    des_generate_round_key(&round_key, &c1d1, &c0d0, 3);
+    EXPECT_EQ(c1d1.u64, c1d1_exp.u64);
+    EXPECT_EQ(memcmp(round_key.u8, round_key_exp.u8, 6), 0);
+
+    // Round 4: shift 2
+    // C3 = 0x00 0x00 0x00 0x00
+    // D3 = 0x00 0x00 0x00 0x11
+    c0d0.u64 = 0;
+    c0d0.key[7] = 0x11;
+    // C4 = 0x00 0x00 0x00 0x00
+    // D4 = 0x00 0x00 0x00 0x41
+    c1d1_exp.u64 = 0;
+    c1d1_exp.key[7] = 0x41;
+    // K4 = 0x00 0x00 0x00 0x00 0x80 0x00
+    memset(round_key_exp.u8, 0, 6);
+    round_key_exp.u8[4] = 0x80;
+    // Test:
+    des_generate_round_key(&round_key, &c1d1, &c0d0, 4);
+    EXPECT_EQ(c1d1.u64, c1d1_exp.u64);
+    EXPECT_EQ(memcmp(round_key.u8, round_key_exp.u8, 6), 0);
+
+    // Round 5: shift 2
+    // C4 = 0x00 0x00 0x00 0x00
+    // D4 = 0x00 0x00 0x00 0x41
+    c0d0.u64 = 0;
+    c0d0.key[7] = 0x41;
+    // C5 = 0x00 0x00 0x00 0x00
+    // D5 = 0x00 0x00 0x03 0x00
+    c1d1_exp.u64 = 0;
+    c1d1_exp.key[6] = 0x03;
+    // K5 = 0x00 0x00 0x00 0x00 0x04 0x00
+    memset(round_key_exp.u8, 0, 6);
+    round_key_exp.u8[4] = 0x04;
+    // Test:
+    des_generate_round_key(&round_key, &c1d1, &c0d0, 5);
+    EXPECT_EQ(c1d1.u64, c1d1_exp.u64);
+    EXPECT_EQ(memcmp(round_key.u8, round_key_exp.u8, 6), 0);
+
+    // Round 6: shift 2
+    // C5 = 0x00 0x00 0x00 0x00
+    // D5 = 0x00 0x00 0x03 0x00
+    c0d0.u64 = 0;
+    c0d0.key[6] = 0x03;
+    // C6 = 0x00 0x00 0x00 0x00
+    // D6 = 0x00 0x00 0x09 0x00
+    c1d1_exp.u64 = 0;
+    c1d1_exp.key[6] = 0x09;
+    // K6 = 0x00 0x00 0x00 0x08 0x00 0x00
+    memset(round_key_exp.u8, 0, 6);
+    round_key_exp.u8[3] = 0x08;
+    // Test:
+    des_generate_round_key(&round_key, &c1d1, &c0d0, 6);
+    EXPECT_EQ(c1d1.u64, c1d1_exp.u64);
+    EXPECT_EQ(memcmp(round_key.u8, round_key_exp.u8, 6), 0);
+
+    // Round 7: shift 2
+    // C6 = 0x00 0x00 0x00 0x00
+    // D6 = 0x00 0x00 0x09 0x00
+    c0d0.u64 = 0;
+    c0d0.key[6] = 0x09;
+    // C7 = 0x00 0x00 0x00 0x00
+    // D7 = 0x00 0x00 0x21 0x00
+    c1d1_exp.u64 = 0;
+    c1d1_exp.key[6] = 0x21;
+    // K7 = 0x00 0x00 0x00 0x00 0x40 0x00
+    memset(round_key_exp.u8, 0, 6);
+    round_key_exp.u8[4] = 0x40;
+    // Test:
+    des_generate_round_key(&round_key, &c1d1, &c0d0, 7);
+    EXPECT_EQ(c1d1.u64, c1d1_exp.u64);
+    EXPECT_EQ(memcmp(round_key.u8, round_key_exp.u8, 6), 0);
+
+    // Round 8: shift 2
+    // C7 = 0x00 0x00 0x00 0x00
+    // D7 = 0x00 0x00 0x21 0x00
+    c0d0.u64 = 0;
+    c0d0.key[6] = 0x21;
+    // C8 = 0x00 0x00 0x00 0x00
+    // D8 = 0x00 0x00 0x81 0x00
+    c1d1_exp.u64 = 0;
+    c1d1_exp.key[6] = 0x81;
+    // K8 = 0x00 0x00 0x00 0x00 0x00 0x00
+    memset(round_key_exp.u8, 0, 6);
+    // Test:
+    des_generate_round_key(&round_key, &c1d1, &c0d0, 8);
+    EXPECT_EQ(c1d1.u64, c1d1_exp.u64);
+    EXPECT_EQ(memcmp(round_key.u8, round_key_exp.u8, 6), 0);
+
+    // Round 9: shift 1
+    // C8 = 0x00 0x00 0x00 0x00
+    // D8 = 0x00 0x00 0x81 0x00
+    c0d0.u64 = 0;
+    c0d0.key[6] = 0x81;
+    // C9 = 0x00 0x00 0x00 0x00
+    // D9 = 0x00 0x03 0x00 0x00
+    c1d1_exp.u64 = 0;
+    c1d1_exp.key[5] = 0x03;
+    // K9 = 0x00 0x00 0x00 0x00 0x00 0x10
+    memset(round_key_exp.u8, 0, 6);
+    round_key_exp.u8[5] = 0x10;
+    // Test:
+    des_generate_round_key(&round_key, &c1d1, &c0d0, 9);
+    EXPECT_EQ(c1d1.u64, c1d1_exp.u64);
+    EXPECT_EQ(memcmp(round_key.u8, round_key_exp.u8, 6), 0);
+
+    // Round 10: shift 2
+    // C9 = 0x00 0x00 0x00 0x00
+    // D9 = 0x00 0x03 0x00 0x00
+    c0d0.u64 = 0;
+    c0d0.key[5] = 0x03;
+    // C10 = 0x00 0x00 0x00 0x00
+    // D10 = 0x00 0x09 0x00 0x00
+    c1d1_exp.u64 = 0;
+    c1d1_exp.key[5] = 0x09;
+    // K10 = 0x00 0x00 0x00 0x01 0x00 0x00
+    memset(round_key_exp.u8, 0, 6);
+    round_key_exp.u8[3] = 0x01;
+    // Test:
+    des_generate_round_key(&round_key, &c1d1, &c0d0, 10);
+    EXPECT_EQ(c1d1.u64, c1d1_exp.u64);
+    EXPECT_EQ(memcmp(round_key.u8, round_key_exp.u8, 6), 0);
+
+    // Round 11: shift 2
+    // C10 = 0x00 0x00 0x00 0x00
+    // D10 = 0x00 0x09 0x00 0x00
+    c0d0.u64 = 0;
+    c0d0.key[5] = 0x09;
+    // C11 = 0x00 0x00 0x00 0x00
+    // D11 = 0x00 0x21 0x00 0x00
+    c1d1_exp.u64 = 0;
+    c1d1_exp.key[5] = 0x21;
+    // K11 = 0x00 0x00 0x00 0x00 0x00 0x00
+    memset(round_key_exp.u8, 0, 6);
+    // Test:
+    des_generate_round_key(&round_key, &c1d1, &c0d0, 11);
+    EXPECT_EQ(c1d1.u64, c1d1_exp.u64);
+    EXPECT_EQ(memcmp(round_key.u8, round_key_exp.u8, 6), 0);
+
+    // Round 12: shift 2
+    // C11 = 0x00 0x00 0x00 0x00
+    // D11 = 0x00 0x21 0x00 0x00
+    c0d0.u64 = 0;
+    c0d0.key[5] = 0x21;
+    // C12 = 0x00 0x00 0x00 0x00
+    // D12 = 0x00 0x81 0x00 0x00
+    c1d1_exp.u64 = 0;
+    c1d1_exp.key[5] = 0x81;
+    // K12 = 0x00 0x00 0x00 0x00 0x00 0x04
+    memset(round_key_exp.u8, 0, 6);
+    round_key_exp.u8[5] = 0x04;
+    // Test:
+    des_generate_round_key(&round_key, &c1d1, &c0d0, 12);
+    EXPECT_EQ(c1d1.u64, c1d1_exp.u64);
+    EXPECT_EQ(memcmp(round_key.u8, round_key_exp.u8, 6), 0);
+
+    // Round 13: shift 2
+    // C12 = 0x00 0x00 0x00 0x00
+    // D12 = 0x00 0x81 0x00 0x00
+    c0d0.u64 = 0;
+    c0d0.key[5] = 0x81;
+    // C13 = 0x00 0x00 0x00 0x00
+    // D13 = 0x05 0x00 0x00 0x00
+    c1d1_exp.u64 = 0;
+    c1d1_exp.key[4] = 0x05;
+    // K13 = 0x00 0x00 0x00 0x00 0x00 0x80
+    memset(round_key_exp.u8, 0, 6);
+    round_key_exp.u8[5] = 0x80;
+    // Test:
+    des_generate_round_key(&round_key, &c1d1, &c0d0, 13);
+    EXPECT_EQ(c1d1.u64, c1d1_exp.u64);
+    EXPECT_EQ(memcmp(round_key.u8, round_key_exp.u8, 6), 0);
+
+    // Round 14: shift 2
+    // C13 = 0x00 0x00 0x00 0x00
+    // D13 = 0x05 0x00 0x00 0x00
+    c0d0.u64 = 0;
+    c0d0.key[4] = 0x05;
+    // C14 = 0x00 0x00 0x00 0x00
+    // D14 = 0x11 0x00 0x00 0x00
+    c1d1_exp.u64 = 0;
+    c1d1_exp.key[4] = 0x11;
+    // K14 = 0x00 0x00 0x00 0x00 0x00 0x01
+    memset(round_key_exp.u8, 0, 6);
+    round_key_exp.u8[5] = 0x01;
+    // Test:
+    des_generate_round_key(&round_key, &c1d1, &c0d0, 14);
+    EXPECT_EQ(c1d1.u64, c1d1_exp.u64);
+    EXPECT_EQ(memcmp(round_key.u8, round_key_exp.u8, 6), 0);
+
+    // Round 15: shift 2
+    // C14 = 0x00 0x00 0x00 0x00
+    // D14 = 0x11 0x00 0x00 0x00
+    c0d0.u64 = 0;
+    c0d0.key[4] = 0x11;
+    // C15 = 0x00 0x00 0x00 0x00
+    // D15 = 0x41 0x00 0x00 0x00
+    c1d1_exp.u64 = 0;
+    c1d1_exp.key[4] = 0x41;
+    // K15 = 0x00 0x00 0x00 0x02 0x00 0x00
+    memset(round_key_exp.u8, 0, 6);
+    round_key_exp.u8[3] = 0x02;
+    // Test:
+    des_generate_round_key(&round_key, &c1d1, &c0d0, 15);
+    EXPECT_EQ(c1d1.u64, c1d1_exp.u64);
+    EXPECT_EQ(memcmp(round_key.u8, round_key_exp.u8, 6), 0);
+
+    // Round 16: shift 1
+    // C15 = 0x00 0x00 0x00 0x00
+    // D15 = 0x41 0x00 0x00 0x00
+    c0d0.u64 = 0;
+    c0d0.key[4] = 0x41;
+    // C16 = 0x00 0x00 0x00 0x00
+    // D16 = 0x81 0x00 0x00 0x00
+    c1d1_exp.u64 = 0;
+    c1d1_exp.key[4] = 0x81;
+    // K16 = 0x00 0x00 0x00 0x00 0x00 0x02
+    memset(round_key_exp.u8, 0, 6);
+    round_key_exp.u8[5] = 0x02;
+    // Test:
+    des_generate_round_key(&round_key, &c1d1, &c0d0, 16);
+    EXPECT_EQ(c1d1.u64, c1d1_exp.u64);
+    EXPECT_EQ(memcmp(round_key.u8, round_key_exp.u8, 6), 0);
 }
 
 TEST(des, block_expansion) {
@@ -180,4 +433,82 @@ TEST(des, feistel_func) {
 
     des_feistel(&after, &before, &round_key);
     EXPECT_EQ(after.u32, expected.u32);
+}
+
+TEST(des, feistel_round) {
+    des_block_t before, after, expected;
+    des_round_key_t round_key;
+    before.u64 = 0;
+    after.u64 = 0;
+    expected.u64 = 0;
+    memset(round_key.u8, 0, 6);
+
+    // L0 = 0x00 0x00 0x00 0x01
+    before.splitted.l.u8[3] = 0x01;
+    // R0 = 0x00 0x00 0x00 0x01
+    before.splitted.r.u8[3] = 0x01;
+    // K0 = 0x00 0x00 0x00 0x00 0x01
+    round_key.u8[5] = 0x01;
+
+    // L1 = 0x00 0x00 0x00 0x01
+    expected.splitted.l.u8[3] = 0x01;
+    // R1 = 0xD0 0x58 0xD1 0xBD
+    expected.splitted.r.u8[0] = 0xD0;
+    expected.splitted.r.u8[1] = 0x58;
+    expected.splitted.r.u8[2] = 0xD1;
+    expected.splitted.r.u8[3] = 0xBD;
+
+    des_feistel_round(&after, &before, &round_key);
+    EXPECT_EQ(after.u64, expected.u64);
+}
+
+TEST(des, keyring) {
+    des_key_t initial_key;
+    des_round_key_t keyring[16], keyring_expected[16];
+    initial_key.u64 = 0;
+    for (int j = 0; j < 16; ++j) {
+        memset(keyring[j].u8, 0, 6);
+        memset(keyring_expected[j].u8, 0, 6);
+    }
+
+    // K0 = 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x03
+    initial_key.key[7] = 0x03;
+
+    // K1 = 0x00 0x00 0x00 0x00 0x01 0x00
+    keyring_expected[0].u8[4] = 0x01;
+    // K2 = 0x00 0x00 0x00 0x04 0x00 0x00
+    keyring_expected[1].u8[3] = 0x04;
+    // K3 = 0x00 0x00 0x00 0x00 0x00 0x40
+    keyring_expected[2].u8[5] = 0x40;
+    // K4 = 0x00 0x00 0x00 0x00 0x80 0x00
+    keyring_expected[3].u8[4] = 0x80;
+    // K5 = 0x00 0x00 0x00 0x00 0x04 0x00
+    keyring_expected[4].u8[4] = 0x04;
+    // K6 = 0x00 0x00 0x00 0x08 0x00 0x00
+    keyring_expected[5].u8[3] = 0x08;
+    // K7 = 0x00 0x00 0x00 0x00 0x40 0x00
+    keyring_expected[6].u8[4] = 0x40;
+    // K8 = 0x00 0x00 0x00 0x00 0x00 0x00
+
+    // K9 = 0x00 0x00 0x00 0x00 0x00 0x10
+    keyring_expected[8].u8[5] = 0x10;
+    // K10 = 0x00 0x00 0x00 0x01 0x00 0x00
+    keyring_expected[9].u8[3] = 0x01;
+    // K11 = 0x00 0x00 0x00 0x00 0x00 0x00
+
+    // K12 = 0x00 0x00 0x00 0x00 0x00 0x04
+    keyring_expected[11].u8[5] = 0x04;
+    // K13 = 0x00 0x00 0x00 0x00 0x00 0x80
+    keyring_expected[12].u8[5] = 0x80;
+    // K14 = 0x00 0x00 0x00 0x00 0x00 0x01
+    keyring_expected[13].u8[5] = 0x01;
+    // K15 = 0x00 0x00 0x00 0x02 0x00 0x00
+    keyring_expected[14].u8[3] = 0x02;
+    // K16 = 0x00 0x00 0x00 0x00 0x00 0x02
+    keyring_expected[15].u8[5] = 0x02;
+
+    des_generate_keyring(keyring, &initial_key);
+    for (int i = 0; i < 16; ++i) {
+        EXPECT_EQ(memcmp(keyring[i].u8, keyring_expected[i].u8, 6), 0);
+    }
 }

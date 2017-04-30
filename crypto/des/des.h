@@ -1,6 +1,9 @@
 #ifndef TLC_SEC_DES_H
 #define TLC_SEC_DES_H
 
+#include <ctype.h>
+#include <stdlib.h>
+
 /***********************************************************************
  *
  *  TYPE DEFINITIONS
@@ -20,6 +23,7 @@ union des_key {
         des_4bytes_t c;
         des_4bytes_t d;
     } splitted;
+    __uint64_t u64;
 };
 typedef union des_key des_key_t;
 
@@ -32,7 +36,8 @@ typedef union des_48B_block des_expanded_block_t;
 
 // Block of plaintext/ciphertext handled by DES
 union des_block {
-    __uint8_t block[8];
+    __uint8_t u8[8];
+    __uint64_t u64;
     struct {
         des_4bytes_t l;
         des_4bytes_t r;
@@ -91,6 +96,12 @@ void des_sub_half_block_permutation (des_half_block_t *dest,
 void des_feistel (des_half_block_t *dest_sub_block,
                   des_half_block_t *src_sub_block,
                   des_round_key_t *round_key);
+
+void des_feistel_round (des_block_t *dest, des_block_t *src,
+                        des_round_key_t *round_key);
+
+void des_generate_keyring (des_round_key_t keyring[16],
+                           des_key_t *initial_key);
 
 void
 des_generate_round_key (des_round_key_t *round_key, des_key_t *next_key,
