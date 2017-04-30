@@ -1,4 +1,4 @@
-sudo: false
+sudo: true
 
 language:
   - c
@@ -6,6 +6,9 @@ language:
 
 compiler:
   - gcc
+
+env:
+  - SRC=crypto
 
 addons:
   apt:
@@ -17,18 +20,23 @@ addons:
       - cmake-data
 
 before_install:
-  - pip install --user urllib3[secure] cpp-coveralls
+  - sudo apt-get update
+  - sudo apt-get install -y lcov
+  - sudo npm install coveralls -g
 
 script:
   - git submodule update --init --recursive
   - mkdir build
   - cd build
   - cmake ..
-  - make
+  - make -j5
+  - lcov --zerocounters --directory $SRC
+  - lcov --capture --initial --directory $SRC --output-file app
   - ./tests/crypto_test/run_tests
 
 after_success:
-  - coveralls -r .. -b . --verbose -e tests -e build -e '<built-in>' --gcov-options '\-lp'
+  - lcov --no-checksum --directory $SRC --capture --output-file app.info
+  - node /usr/lib/node_modules/coveralls/bin/coveralls.js < app.info
 
 notifications:
   email: false
