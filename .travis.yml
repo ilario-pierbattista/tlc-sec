@@ -3,9 +3,13 @@ sudo: true
 language:
   - c
   - cpp
+  - node_js
 
 compiler:
   - gcc
+
+node_js:
+  - "iojs"
 
 env:
   - SRC=crypto
