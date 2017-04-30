@@ -1,4 +1,4 @@
-sudo: required
+sudo: false
 
 language:
   - c
@@ -22,16 +22,19 @@ addons:
     packages:
       - cmake
       - cmake-data
+      - lcov
 
-before_install:
-  - sudo apt-get update
-  - sudo apt-get install -y lcov
+before_script:
+  - npm config set init.author.name "Ilario Pierbattista"
+  - npm config set init.author.email pierbattista.ilario@gmail.com
+  - npm config set init.author.url http://ilario-pierbattista.github.io
+  - npm config set init.license MIT
 
 script:
   - git submodule update --init --recursive
   - mkdir build
   - cd build
-  - npm init -y
+  - npm init -yf
   - npm install coveralls
   - cmake ..
   - make -j5
