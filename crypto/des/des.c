@@ -22,14 +22,16 @@ int key_permutation[56] = {57, 49, 41, 33, 25, 17, 9, 1, 58, 50, 42, 34,
                            7, 62, 54, 46, 38, 30, 22, 14, 6, 61, 53, 45,
                            37, 29, 21, 13, 5, 28, 20, 12, 4};
 
-int initial_message_permutation[] = {58, 50, 42, 34, 26, 18, 10, 2, 60,
-                                     52, 44, 36, 28, 20, 12, 4, 62, 54,
-                                     46, 38, 30, 22, 14, 6, 64, 56, 48,
-                                     40, 32, 24, 16, 8, 57, 49, 41, 33,
-                                     25, 17, 9, 1, 59, 51, 43, 35, 27,
-                                     19, 11, 3, 61, 53, 45, 37, 29, 21,
-                                     13, 5, 63, 55, 47, 39, 31, 23, 15,
-                                     7};
+__uint8_t initial_message_permutation[64] = {58, 50, 42, 34, 26, 18, 10,
+                                             2, 60, 52, 44, 36, 28, 20,
+                                             12, 4, 62, 54, 46, 38, 30,
+                                             22, 14, 6, 64, 56, 48, 40,
+                                             32, 24, 16, 8, 57, 49, 41,
+                                             33, 25, 17, 9, 1, 59, 51,
+                                             43, 35, 27, 19, 11, 3, 61,
+                                             53, 45, 37, 29, 21, 13, 5,
+                                             63, 55, 47, 39, 31, 23, 15,
+                                             7};
 
 int key_shift_offsets[17] = {0, 1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2,
                              2, 2, 1};
@@ -60,14 +62,16 @@ int right_sub_message_permutation[32] = {16, 7, 20, 21, 29, 12, 28, 17,
                                          2, 8, 24, 14, 32, 27, 3, 9, 19,
                                          13, 30, 6, 22, 11, 4, 25};
 
-int final_message_permutation[64] = {40, 8, 48, 16, 56, 24, 64, 32, 39,
-                                     7, 47, 15, 55, 23, 63, 31, 38, 6,
-                                     46, 14, 54, 22, 62, 30, 37, 5, 45,
-                                     13, 53, 21, 61, 29, 36, 4, 44, 12,
-                                     52, 20, 60, 28, 35, 3, 43, 11, 51,
-                                     19, 59, 27, 34, 2, 42, 10, 50, 18,
-                                     58, 26, 33, 1, 41, 9, 49, 17, 57,
-                                     25};
+__uint8_t final_message_permutation[64] = {40, 8, 48, 16, 56, 24, 64,
+                                           32, 39, 7, 47, 15, 55, 23,
+                                           63, 31, 38, 6, 46, 14, 54,
+                                           22, 62, 30, 37, 5, 45, 13,
+                                           53, 21, 61, 29, 36, 4, 44,
+                                           12, 52, 20, 60, 28, 35, 3,
+                                           43, 11, 51, 19, 59, 27, 34,
+                                           2, 42, 10, 50, 18, 58, 26,
+                                           33, 1, 41, 9, 49, 17, 57,
+                                           25};
 
 void des_generate_block_list (des_block_list_t *block_list,
                               __uint8_t *string, size_t size) {
@@ -335,8 +339,8 @@ void des_feistel_round (des_block_t *dest, des_block_t *src,
     dest->splitted.r.u32 = feistel_result.u32 ^ src->splitted.l.u32;
 }
 
-void des_generate_keyring (des_round_key_t keyring[16],
-                           des_key_t *initial_key) {
+void des_generate_encryption_keyring (des_round_key_t *keyring,
+                                      des_key_t *initial_key) {
     for (int j = 0; j < 16; ++j) {
         memset(keyring[j].u8, 0, 6);
     }
@@ -352,18 +356,97 @@ void des_generate_keyring (des_round_key_t keyring[16],
     }
 }
 
+void des_generate_decryption_keyring (des_round_key_t *keyring,
+                                      des_key_t *initial_key) {
+    des_round_key_t encryption_keyring[16];
+    des_generate_encryption_keyring(encryption_keyring, initial_key);
+    for (int i = 0; i < 16; ++i) {
+        memcpy(keyring[i].u8, encryption_keyring[15 - i].u8, 6);
+    }
+}
+
+void des_feistel_system (des_block_t *dest, des_block_t *src,
+                         des_round_key_t keyring[16]) {
+    des_block_t current, next;
+    current.u64 = src->u64;
+    for (int i = 0; i < 16; ++i) {
+        des_feistel_round(&next, &current, &keyring[i]);
+        current.u64 = next.u64;
+    }
+    dest->u64 = next.u64;
+}
+
 void des_encrypt (des_block_t *cipher_text, des_block_t *plain_text,
                   des_key_t *key) {
-    des_block_t block;
+    des_round_key_t keyring[16];
+    des_block_t init_perm, final_perm;
 
-    memcpy(&block, plain_text, sizeof(des_block_t));
+    des_generate_encryption_keyring(keyring, key);
 
-    for (int i = 0; i < 16; ++i) {
-        printf("Round: %d", i + 1);
-        printf("Left: \n");
-        print_bin(block.splitted.l.u8, 4);
-        printf("Right: \n");
-        print_bin(block.splitted.r.u8, 4);
+    des_block_permutation(&init_perm, plain_text,
+                          DES_INITIAL_PERMUTATION_CODE);
+    des_feistel_system(&final_perm, &init_perm, keyring);
+    des_block_permutation(cipher_text, &final_perm,
+                          DES_FINAL_PERMUTATION_CODE);
+}
+
+void des_decrypt (des_block_t *plain_text, des_block_t *cipher_text,
+                  des_key_t *key) {
+    des_round_key_t keyring[16];
+    des_half_block_t swap;
+    des_block_t init_perm, final_perm;
+
+    des_generate_decryption_keyring(keyring, key);
+
+    des_block_permutation(&init_perm, cipher_text,
+                          DES_INITIAL_PERMUTATION_CODE);
+    cipher_text->u64 = init_perm.u64;
+
+    swap.u32 = cipher_text->splitted.l.u32;
+    cipher_text->splitted.l.u32 = cipher_text->splitted.r.u32;
+    cipher_text->splitted.r.u32 = swap.u32;
+
+    des_feistel_system(plain_text, cipher_text, keyring);
+
+    swap.u32 = plain_text->splitted.l.u32;
+    plain_text->splitted.l.u32 = plain_text->splitted.r.u32;
+    plain_text->splitted.r.u32 = swap.u32;
+
+    des_block_permutation(&final_perm, plain_text,
+                          DES_FINAL_PERMUTATION_CODE);
+    plain_text->u64 = final_perm.u64;
+}
+
+void des_block_permutation (des_block_t *dest, des_block_t *src,
+                            short permutation_code) {
+    __uint8_t *permutation;
+    int s_bit_num, s_byte_num, s_byte_offset;
+    int d_byte_num, d_byte_offset;
+    __uint8_t extracted;
+
+    switch (permutation_code) {
+        case DES_INITIAL_PERMUTATION_CODE:
+            permutation = initial_message_permutation;
+            break;
+        case DES_FINAL_PERMUTATION_CODE:
+            permutation = final_message_permutation;
+            break;
+        default:
+            exit(-1);
+    }
+
+    dest->u64 = 0;
+    for (int i = 0; i < 64; ++i) {
+        d_byte_num = i / 8;
+        d_byte_offset = i % 8;
+
+        s_bit_num = permutation[i] - 1;
+        s_byte_num = s_bit_num / 8;
+        s_byte_offset = s_bit_num % 8;
+
+        extracted = byte_get_bit(src->u8[s_byte_num], s_byte_offset + 1)
+                << (7 - d_byte_offset);
+        dest->u8[d_byte_num] |= extracted;
     }
 }
 

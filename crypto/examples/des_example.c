@@ -11,6 +11,7 @@
 int main (int argc, char **argv) {
     des_key_t key;
     des_block_list_t block_list;
+    des_block_t cipher_text;
 
     if (argc != 3) {
         printf("Usage: %s <message> <password>\n", argv[0]);
@@ -36,5 +37,14 @@ int main (int argc, char **argv) {
          p != 0 && p->next != 0; p = p->next, i++) {
         printf("Block %02X| ", i);
         print_bin(p->block.u8, 8);
+    }
+
+    printf("Ciphertext digest:\n");
+    i = 0;
+    for (des_block_list_t p = block_list;
+         p != 0 && p->next != 0; p = p->next, i++) {
+        printf("Block %02X| ", i);
+        des_encrypt(&cipher_text, &p->block, &key);
+        print_bin(cipher_text.u8, 8);
     }
 }

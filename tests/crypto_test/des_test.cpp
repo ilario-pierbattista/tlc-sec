@@ -4,6 +4,22 @@ extern "C" {
 #include "des/des.h"
 }
 
+TEST(des, key_generation) {
+    char password[] = {'h', 'e', 'l', 'l', 'o', 'd', 'e', 's'};
+    des_key_t key, key_expected;
+    key_expected.key[0] = 0xD1;
+    key_expected.key[1] = 0xCA;
+    key_expected.key[2] = 0xD8;
+    key_expected.key[3] = 0xD8;
+    key_expected.key[4] = 0xDE;
+    key_expected.key[5] = 0xC9;
+    key_expected.key[6] = 0xCA;
+    key_expected.key[7] = 0xE7;
+
+    des_generate_key(password, &key);
+    EXPECT_EQ(key.u64, key_expected.u64);
+}
+
 TEST(des, block_list_append) {
     des_block_list_t list_1 = 0, list_2 = 0, list_3 = 0;
     des_block_node_t *node_2, *node_3;
@@ -462,7 +478,7 @@ TEST(des, feistel_round) {
     EXPECT_EQ(after.u64, expected.u64);
 }
 
-TEST(des, keyring) {
+TEST(des, encryption_keyring) {
     des_key_t initial_key;
     des_round_key_t keyring[16], keyring_expected[16];
     initial_key.u64 = 0;
@@ -507,8 +523,91 @@ TEST(des, keyring) {
     // K16 = 0x00 0x00 0x00 0x00 0x00 0x02
     keyring_expected[15].u8[5] = 0x02;
 
-    des_generate_keyring(keyring, &initial_key);
+    des_generate_encryption_keyring(keyring, &initial_key);
     for (int i = 0; i < 16; ++i) {
         EXPECT_EQ(memcmp(keyring[i].u8, keyring_expected[i].u8, 6), 0);
     }
+}
+
+TEST(des, decryption_keyring) {
+    des_key_t initial_key;
+    des_round_key_t keyring[16], keyring_expected[16];
+    initial_key.u64 = 0;
+    for (int j = 0; j < 16; ++j) {
+        memset(keyring[j].u8, 0, 6);
+        memset(keyring_expected[j].u8, 0, 6);
+    }
+
+    // K0 = 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x03
+    initial_key.key[7] = 0x03;
+
+    // K1 = 0x00 0x00 0x00 0x00 0x01 0x00
+    keyring_expected[15].u8[4] = 0x01;
+    // K2 = 0x00 0x00 0x00 0x04 0x00 0x00
+    keyring_expected[14].u8[3] = 0x04;
+    // K3 = 0x00 0x00 0x00 0x00 0x00 0x40
+    keyring_expected[13].u8[5] = 0x40;
+    // K4 = 0x00 0x00 0x00 0x00 0x80 0x00
+    keyring_expected[12].u8[4] = 0x80;
+    // K5 = 0x00 0x00 0x00 0x00 0x04 0x00
+    keyring_expected[11].u8[4] = 0x04;
+    // K6 = 0x00 0x00 0x00 0x08 0x00 0x00
+    keyring_expected[10].u8[3] = 0x08;
+    // K7 = 0x00 0x00 0x00 0x00 0x40 0x00
+    keyring_expected[9].u8[4] = 0x40;
+    // K8 = 0x00 0x00 0x00 0x00 0x00 0x00
+
+    // K9 = 0x00 0x00 0x00 0x00 0x00 0x10
+    keyring_expected[7].u8[5] = 0x10;
+    // K10 = 0x00 0x00 0x00 0x01 0x00 0x00
+    keyring_expected[6].u8[3] = 0x01;
+    // K11 = 0x00 0x00 0x00 0x00 0x00 0x00
+
+    // K12 = 0x00 0x00 0x00 0x00 0x00 0x04
+    keyring_expected[4].u8[5] = 0x04;
+    // K13 = 0x00 0x00 0x00 0x00 0x00 0x80
+    keyring_expected[3].u8[5] = 0x80;
+    // K14 = 0x00 0x00 0x00 0x00 0x00 0x01
+    keyring_expected[2].u8[5] = 0x01;
+    // K15 = 0x00 0x00 0x00 0x02 0x00 0x00
+    keyring_expected[1].u8[3] = 0x02;
+    // K16 = 0x00 0x00 0x00 0x00 0x00 0x02
+    keyring_expected[0].u8[5] = 0x02;
+
+    des_generate_decryption_keyring(keyring, &initial_key);
+    for (int i = 0; i < 16; ++i) {
+        EXPECT_EQ(memcmp(keyring[i].u8, keyring_expected[i].u8, 6), 0);
+    }
+}
+
+TEST(des, permutation) {
+    des_block_t block, permuted, expected_initial, expected_final;
+    block.u64 = 0;
+    expected_initial.u64 = 0;
+    expected_final.u64 = 0;
+    block.u8[7] = 0x40;
+    expected_initial.u8[0] = 0x80;
+    expected_final.u8[6] = 0x02;
+
+    des_block_permutation(&permuted, &block,
+                          DES_INITIAL_PERMUTATION_CODE);
+    EXPECT_EQ(permuted.u64, expected_initial.u64);
+    des_block_permutation(&permuted, &block,
+                          DES_FINAL_PERMUTATION_CODE);
+    EXPECT_EQ(permuted.u64, expected_final.u64);
+}
+
+TEST(des, symmetry) {
+    des_block_t plain_text, cipher_text, plain_text_decrypted;
+    des_key_t key;
+    char password[] = {'h', 'e', 'l', 'l', 'o', 'd', 'e', 's'};
+
+    des_generate_key(password, &key);
+    for (int i = 0; i < 8; ++i) {
+        plain_text.u8[i] = (__uint8_t) (rand() % 256);
+    }
+
+    des_encrypt(&cipher_text, &plain_text, &key);
+    des_decrypt(&plain_text_decrypted, &cipher_text, &key);
+    EXPECT_EQ(plain_text.u64, plain_text_decrypted.u64);
 }

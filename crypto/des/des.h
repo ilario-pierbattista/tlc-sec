@@ -4,6 +4,9 @@
 #include <ctype.h>
 #include <stdlib.h>
 
+#define DES_INITIAL_PERMUTATION_CODE 0
+#define DES_FINAL_PERMUTATION_CODE 1
+
 /***********************************************************************
  *
  *  TYPE DEFINITIONS
@@ -85,6 +88,12 @@ void des_generate_key (char *password, des_key_t *key);
 void des_encrypt (des_block_t *cipher_text, des_block_t *plain_text,
                   des_key_t *key);
 
+void des_decrypt (des_block_t *plain_text, des_block_t *cipher_text,
+                  des_key_t *key);
+
+void des_block_permutation (des_block_t *dest, des_block_t *src,
+                            short permutation_code);
+
 void des_half_block_expansion (des_expanded_block_t *dest,
                                des_half_block_t *half_block);
 
@@ -100,8 +109,14 @@ void des_feistel (des_half_block_t *dest_sub_block,
 void des_feistel_round (des_block_t *dest, des_block_t *src,
                         des_round_key_t *round_key);
 
-void des_generate_keyring (des_round_key_t keyring[16],
-                           des_key_t *initial_key);
+void des_generate_encryption_keyring (des_round_key_t *keyring,
+                                      des_key_t *initial_key);
+
+void des_generate_decryption_keyring (des_round_key_t *keyring,
+                                      des_key_t *initial_key);
+
+void des_feistel_system (des_block_t *dest, des_block_t *src,
+                         des_round_key_t keyring[16]);
 
 void
 des_generate_round_key (des_round_key_t *round_key, des_key_t *next_key,
