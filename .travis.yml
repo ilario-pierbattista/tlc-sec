@@ -1,4 +1,4 @@
-sudo: true
+sudo: required
 
 language:
   - c
@@ -27,13 +27,12 @@ before_install:
   - sudo apt-get update
   - sudo apt-get install -y lcov
 
-before_script:
-  - sudo npm -g install coveralls
-
 script:
   - git submodule update --init --recursive
   - mkdir build
   - cd build
+  - npm init -y
+  - npm install coveralls
   - cmake ..
   - make -j5
   - lcov --zerocounters --directory $SRC
@@ -42,7 +41,7 @@ script:
 
 after_success:
   - lcov --no-checksum --directory $SRC --capture --output-file app.info
-  - node /usr/lib/node_modules/coveralls/bin/coveralls.js < app.info
+  - node node_modules/coveralls/bin/coveralls.js < app.info
 
 notifications:
   email: false
